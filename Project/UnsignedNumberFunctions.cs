@@ -5,6 +5,13 @@ namespace Ouroboros.Maths;
 
 public static class UnsignedNumberFunctions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T IsGreaterThan<T>(this T value, T other) where T : IBinaryInteger<T> =>
+        (value > other).As<T>();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T Max<T>(this T value, T other) where T : IBinaryInteger<T> =>
+        (value ^ ((value ^ other) & (-other.IsGreaterThan(other: value))));
+
     public static TResult ElegantPair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput>, IUnsignedNumber<TInput> where TResult : IBinaryInteger<TResult>, IUnsignedNumber<TResult> {
         var x = value.Max(other: other);
         var y = ((value ^ other) * (x & TInput.One));
@@ -144,6 +151,28 @@ public static class UnsignedNumberFunctions
 
         if ((index != T.One) && (index != value)) {
             yield return index;
+        }
+    }
+    public static T LogarithmBase10<T>(this T value) where T : IBinaryInteger<T> {
+        return BinaryIntegerConstants<T>.Size switch {
+#if !FORCE_SOFTWARE_LOG10
+            8 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
+            16 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
+            32 => (T.CreateTruncating(value: ((uint)Math.Log10(d: uint.CreateTruncating(value: value)))) + T.One),
+#endif
+            _ => SoftwareImplementation(value: value),
+        };
+
+        static T SoftwareImplementation(T value) {
+            var quotient = value;
+            var result = T.Zero;
+
+            do {
+                quotient /= T.CreateTruncating(value: 10U);
+                ++result;
+            } while (T.Zero < quotient);
+
+            return result;
         }
     }
     /// <remarks>

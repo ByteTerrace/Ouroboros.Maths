@@ -7,39 +7,47 @@ using Ouroboros.Maths;
 for (var i = uint.MinValue; (i < uint.MaxValue); ++i) {
 }
 #else
-_ = BenchmarkRunner.Run<Benchmarks>();
+_ = BenchmarkRunner.Run<BinaryIntegerBenchmarks>();
 #endif
 
 [DisassemblyDiagnoser]
 [MemoryDiagnoser]
-public class Benchmarks
+public class BinaryIntegerBenchmarks
 {
     private static Pcg32XshRr Rng { get; } = Pcg32XshRr.New();
 
-    public static uint[] Values { get; } = Enumerable.Range(count: 1, start: 0).Select(x => Rng.NextUInt32()).ToArray();
+    private static uint Value => Rng.NextUInt32();
 
     private readonly Consumer m_consumer = new();
 
-    //[ParamsSource(name: nameof(Values))]
-    //public uint Value { get; set; }
-    public uint Value => Rng.NextUInt32();
-
-    //[Benchmark]
+    [Benchmark]
+    public ulong BitwisePair() => Value.BitwisePair<uint, ulong>(other: Value);
+    [Benchmark]
+    public uint ClearLowestSetBit() => Value.ClearLowestSetBit();
+    [Benchmark]
     public uint DigitalRoot() => Value.DigitalRoot();
-    //[Benchmark]
+    [Benchmark]
     public void EnumerateDigits() => Value.EnumerateDigits().Consume(consumer: m_consumer);
-    //[Benchmark]
-    public bool IsPrime() => Value.IsPrime();
-    //[Benchmark]
+    [Benchmark]
+    public uint ExtractLowestSetBit() => Value.ExtractLowestSetBit();
+    [Benchmark]
+    public uint LeastSignificantBit() => Value.LeastSignificantBit();
+    [Benchmark]
     public uint LeastSignificantDigit() => Value.LeastSignificantDigit();
-    //[Benchmark]
-    public uint Log10() => Value.Log10();
-    //[Benchmark]
+    [Benchmark]
+    public uint MostSignificantBit() => Value.MostSignificantBit();
+    [Benchmark]
     public uint MostSignificantDigit() => Value.MostSignificantDigit();
-    //[Benchmark]
+    [Benchmark(Baseline = true)]
+    public uint NextUInt32() => Value;
+    [Benchmark]
+    public uint PermuteBitsLexicographically() => Value.PermuteBitsLexicographically();
+    [Benchmark]
+    public uint ReflectedBinaryDecode() => Value.ReflectedBinaryDecode();
+    [Benchmark]
+    public uint ReflectedBinaryEncode() => Value.ReflectedBinaryEncode();
+    [Benchmark]
     public uint ReverseBits() => Value.ReverseBits();
-    //[Benchmark]
+    [Benchmark]
     public uint ReverseDigits() => Value.ReverseDigits();
-    //[Benchmark]
-    public uint SquareRoot() => Value.SquareRoot();
 }

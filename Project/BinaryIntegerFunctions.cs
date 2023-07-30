@@ -8,33 +8,9 @@ public static class BinaryIntegerFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T As<T>(this bool value) where T : IBinaryInteger<T> =>
         T.CreateTruncating(value: Unsafe.As<bool, byte>(source: ref value));
-    /// <remarks>
-    /// Should get translated to BLSR (or the equivalent) on supported platforms.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T ClearLeastSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
-        (value & (value - T.One));
-    /// <remarks>
-    /// Should get translated to BLSI (or the equivalent) on supported platforms.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T ExtractLeastSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
-        (value & (-value));
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T IsGreaterThan<T>(this T value, T other) where T : IBinaryInteger<T> =>
-        (value > other).As<T>();
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T IsNonZero<T>(this T value) where T : IBinaryInteger<T> =>
         (T.Zero != value).As<T>();
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T IsPowerOfTwo<T>(this T value) where T : IBinaryInteger<T> =>
-        (value.ClearLeastSignificantBit().IsZero() - (T.Zero >= value).As<T>());
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T IsZero<T>(this T value) where T : IBinaryInteger<T> =>
-        (T.Zero == value).As<T>();
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T Max<T>(this T value, T other) where T : IBinaryInteger<T> =>
-        (value ^ ((value ^ other) & (-other.IsGreaterThan(other: value))));
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T NthFermatMask<T>(this int value) where T : IBinaryInteger<T> =>
         (T.AllBitsSet / value.NthFermatNumber<T>());
@@ -93,6 +69,8 @@ public static class BinaryIntegerFunctions
 
         return (x | (y << 1));
     }
+    public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
+        (value & (value - T.One));
     public static T DigitalRoot<T>(this T value) where T : IBinaryInteger<T> {
         var x = value.IsNonZero();
         var y = T.Abs(value: value);
@@ -104,7 +82,7 @@ public static class BinaryIntegerFunctions
         var quotient = value;
 
         do {
-            (quotient, var remainder) = T.DivRem(left: quotient, right: BinaryIntegerConstants<T>.Ten);
+            (quotient, var remainder) = T.DivRem(left: quotient, right: T.CreateTruncating(value: 10U));
 
             yield return remainder;
         } while (T.Zero < quotient);
@@ -123,6 +101,8 @@ public static class BinaryIntegerFunctions
 
         return result;
     }
+    public static T ExtractLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
+        (value & (-value));
     public static T GreatestCommonDivisor<T>(this T value, T other) where T : IBinaryInteger<T> {
         if (T.Zero == other) { return value; }
         else if (T.Zero == value) { return other; }
@@ -130,107 +110,81 @@ public static class BinaryIntegerFunctions
         other = T.Abs(value: other);
         value = T.Abs(value: value);
 
-        var x = int.CreateTruncating(value: T.TrailingZeroCount(value: (other | value)));
+        var shift = int.CreateTruncating(value: T.TrailingZeroCount(value: (other | value)));
 
-        do {
-            other >>= int.CreateTruncating(value: T.TrailingZeroCount(value: other));
-            value >>= int.CreateTruncating(value: T.TrailingZeroCount(value: value));
+        other >>= int.CreateTruncating(value: T.TrailingZeroCount(value: other));
+        value >>= int.CreateTruncating(value: T.TrailingZeroCount(value: value));
 
-            var y = ((other ^ value) & (-(value < other).As<T>()));
+        if (other != value) {
+            do {
+                var swap = ((other ^ value) & (-(value < other).As<T>()));
 
-            other ^= y;
-            value ^= y;
-            value -= other;
-        } while (T.Zero != value);
+                other ^= swap;
+                value ^= swap;
+                value -= other;
+                value >>= int.CreateTruncating(value: T.TrailingZeroCount(value: value));
+            } while (other != value);
+        }
 
-        return (other << x);
+        return (other << shift);
     }
-    public static T LeastCommonMultiple<T>(this T value, T other) where T : IBinaryInteger<T> {
-        var gcd = value.GreatestCommonDivisor(other: other);
-
-        return ((value / gcd) * other);
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T LeastCommonMultiple<T>(this T value, T other) where T : IBinaryInteger<T> =>
+        ((value / value.GreatestCommonDivisor(other: other)) * other);
     public static T LeastSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
         (value.IsNonZero() * (T.TrailingZeroCount(value: value) + T.One));
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T LeastSignificantDigit<T>(this T value) where T : IBinaryInteger<T> =>
-        (value % BinaryIntegerConstants<T>.Ten);
-    public static T Log10<T>(this T value) where T : IBinaryInteger<T> {
-        return BinaryIntegerConstants<T>.Size switch {
-#if !FORCE_SOFTWARE_LOG10
-            8 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: float.CreateTruncating(value: value)))) + T.One),
-            16 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: float.CreateTruncating(value: value)))) + T.One),
-            32 => (T.CreateTruncating(value: ((uint)Math.Log10(d: double.CreateTruncating(value: value)))) + T.One),
-#endif
-            _ => SoftwareImplementation(value: value),
-        };
-
-        static T SoftwareImplementation(T value) {
-            var quotient = value;
-            var result = T.Zero;
-
-            do {
-                quotient /= BinaryIntegerConstants<T>.Ten;
-                ++result;
-            } while (T.Zero < quotient);
-
-            return result;
-        }
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        (value % T.CreateTruncating(value: 10U));
     public static T MostSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
         (T.CreateTruncating(value: BinaryIntegerConstants<T>.Size) - T.LeadingZeroCount(value: value));
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T MostSignificantDigit<T>(this T value) where T : IBinaryInteger<T> =>
-        (value / BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (value.Log10() - T.One)));
+        (value / T.CreateTruncating(value: 10U).Exponentiate(exponent: (value.LogarithmBase10() - T.One)));
     public static T NthSquare<T>(this T value) where T : IBinaryInteger<T> =>
         (value * value);
     public static T PermuteBitsLexicographically<T>(this T value) where T : IBinaryInteger<T> {
         var x = value.SetLeastSignificantBits();
         var y = int.CreateTruncating(value: (T.TrailingZeroCount(value: value) + T.One));
-        var z = (((~x).ExtractLeastSignificantBit() - T.One) >> y);
+        var z = (((~x).ExtractLowestSetBit() - T.One) >> y);
 
         return ((x + T.One) | z);
     }
     public static T PopulationParity<T>(this T value) where T : IBinaryInteger<T> =>
         (T.PopCount(value: value) & T.One);
     public static T ReflectedBinaryDecode<T>(this T value) where T : IBinaryInteger<T> {
-        var x = (value ^ (value >> 1));
+        value ^= (value >> 1);
 
         if (BinaryIntegerConstants<T>.Size > 2) {
-            x ^= (x >> 2);
+            value ^= (value >> 2);
         }
 
         if (BinaryIntegerConstants<T>.Size > 4) {
-            x ^= (x >> 4);
+            value ^= (value >> 4);
         }
 
         if (BinaryIntegerConstants<T>.Size > 8) {
-            x ^= (x >> 8);
+            value ^= (value >> 8);
         }
 
         if (BinaryIntegerConstants<T>.Size > 16) {
-            x ^= (x >> 16);
+            value ^= (value >> 16);
         }
 
         if (BinaryIntegerConstants<T>.Size > 32) {
-            x ^= (x >> 32);
+            value ^= (value >> 32);
         }
 
         if (BinaryIntegerConstants<T>.Size > 64) {
-            x ^= (x >> 64);
+            value ^= (value >> 64);
         }
 
         if (BinaryIntegerConstants<T>.Size > 128) {
             var i = (BitOperations.Log2(value: ((uint)(BinaryIntegerConstants<T>.Size))) - 7);
 
             do {
-                x ^= (x >> (int.CreateTruncating(value: BinaryIntegerConstants<T>.Size) >> i));
+                value ^= (value >> (int.CreateTruncating(value: BinaryIntegerConstants<T>.Size) >> i));
             } while (0 < --i);
         }
 
-        return x;
+        return value;
     }
     public static T ReflectedBinaryEncode<T>(this T value) where T : IBinaryInteger<T> =>
         (value ^ (value >> 1));
@@ -278,9 +232,9 @@ public static class BinaryIntegerFunctions
         var result = T.Zero;
 
         do {
-            (quotient, var remainder) = T.DivRem(left: quotient, right: BinaryIntegerConstants<T>.Ten);
+            (quotient, var remainder) = T.DivRem(left: quotient, right: T.CreateTruncating(value: 10U));
 
-            result = ((result * BinaryIntegerConstants<T>.Ten) + remainder);
+            result = ((result * T.CreateTruncating(value: 10U)) + remainder);
         } while (T.Zero < quotient);
 
         return result;
