@@ -31,11 +31,11 @@ public static class BinaryIntegerFunctions
         var y = TResult.CreateTruncating(value: other);
 
         if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var i = int.Log2(value: (bitCount - 7));
+            var i = (int.Log2(value: bitCount) - 7);
 
             do {
-                x = ((x | (x << (1 << i))) & i.NthFermatMask<TResult>());
-                y = ((y | (y << (1 << i))) & i.NthFermatMask<TResult>());
+                x = ((x | (x << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
+                y = ((y | (y << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
             } while (0 < --i);
         }
 
@@ -173,8 +173,6 @@ public static class BinaryIntegerFunctions
         (BinaryIntegerConstants<T>.Size - T.LeadingZeroCount(value: value));
     public static T MostSignificantDigit<T>(this T value) where T : IBinaryInteger<T> =>
         (value / BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (value.LogarithmBase10() - T.One)));
-    public static T NthSquare<T>(this T value) where T : IBinaryInteger<T> =>
-        (value * value);
     public static T PermuteBitsLexicographically<T>(this T value) where T : IBinaryInteger<T> {
         var x = value.FillFromLowestSetBit();
         var y = int.CreateTruncating(value: (T.TrailingZeroCount(value: value) + T.One));
@@ -214,7 +212,7 @@ public static class BinaryIntegerFunctions
         }
 
         if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var i = int.Log2(value: (bitCount - 7));
+            var i = (int.Log2(value: bitCount) - 7);
 
             do {
                 value ^= (value >> (bitCount >> i));
@@ -254,13 +252,13 @@ public static class BinaryIntegerFunctions
 
         if (bitCount > 7.NthPowerOfTwo<int>()) {
             var index = 0;
-            var limit = int.Log2(value: (bitCount - 7));
+            var limit = (int.Log2(value: bitCount) - 7);
 
             do {
-                var offset = (index + 6);
+                var mask = (index + 6).NthFermatMask<T>();
                 var shift = (6.NthPowerOfTwo<int>() << index);
 
-                value = (((value >> shift) & offset.NthFermatMask<T>()) | ((value & offset.NthFermatMask<T>()) << shift));
+                value = (((value >> shift) & mask) | ((value & mask) << shift));
             } while (++index < limit);
         }
 
