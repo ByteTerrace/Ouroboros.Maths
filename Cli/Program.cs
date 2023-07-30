@@ -24,18 +24,22 @@ public class Benchmarks
     //public uint Value { get; set; }
     public uint Value => Rng.NextUInt32();
 
-    [Benchmark]
+    //[Benchmark]
     public uint DigitalRoot() => Value.DigitalRoot();
     //[Benchmark]
     public void EnumerateDigits() => Value.EnumerateDigits().Consume(consumer: m_consumer);
-    [Benchmark]
+    //[Benchmark]
     public bool IsPrime() => Value.IsPrime();
-    [Benchmark]
+    //[Benchmark]
     public uint LeastSignificantDigit() => Value.LeastSignificantDigit();
-    [Benchmark]
+    //[Benchmark]
     public uint Log10() => Value.Log10();
-    [Benchmark]
+    //[Benchmark]
     public uint MostSignificantDigit() => Value.MostSignificantDigit();
-    [Benchmark]
+    //[Benchmark]
+    public uint ReverseBits() => Value.ReverseBits();
+    //[Benchmark]
+    public uint ReverseDigits() => Value.ReverseDigits();
+    //[Benchmark]
     public uint SquareRoot() => Value.SquareRoot();
 }

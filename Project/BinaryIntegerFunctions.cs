@@ -45,6 +45,54 @@ public static class BinaryIntegerFunctions
     internal static T SetLeastSignificantBits<T>(this T value) where T : IBinaryInteger<T> =>
         (value | (value - T.One));
 
+    public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        var x = TResult.CreateTruncating(value: value);
+        var y = TResult.CreateTruncating(value: other);
+
+        if (BinaryIntegerConstants<TResult>.Size > 128) {
+            var i = (int.Log2(value: BinaryIntegerConstants<TResult>.Size) - 7);
+
+            do {
+                x = ((x | (x << (1 << i))) & i.NthFermatMask<TResult>());
+                y = ((y | (y << (1 << i))) & i.NthFermatMask<TResult>());
+            } while (0 < --i);
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 64) {
+            x = ((x | (x << 64)) & 6.NthFermatMask<TResult>());
+            y = ((y | (y << 64)) & 6.NthFermatMask<TResult>());
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 32) {
+            x = ((x | (x << 32)) & 5.NthFermatMask<TResult>());
+            y = ((y | (y << 32)) & 5.NthFermatMask<TResult>());
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 16) {
+            x = ((x | (x << 16)) & 4.NthFermatMask<TResult>());
+            y = ((y | (y << 16)) & 4.NthFermatMask<TResult>());
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 8) {
+            x = ((x | (x << 8)) & 3.NthFermatMask<TResult>());
+            y = ((y | (y << 8)) & 3.NthFermatMask<TResult>());
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 4) {
+            x = ((x | (x << 4)) & 2.NthFermatMask<TResult>());
+            y = ((y | (y << 4)) & 2.NthFermatMask<TResult>());
+        }
+
+        if (BinaryIntegerConstants<TResult>.Size > 2) {
+            x = ((x | (x << 2)) & 1.NthFermatMask<TResult>());
+            y = ((y | (y << 2)) & 1.NthFermatMask<TResult>());
+        }
+
+        x = ((x | (x << 1)) & 0.NthFermatMask<TResult>());
+        y = ((y | (y << 1)) & 0.NthFermatMask<TResult>());
+
+        return (x | (y << 1));
+    }
     public static T DigitalRoot<T>(this T value) where T : IBinaryInteger<T> {
         var x = value.IsNonZero();
         var y = T.Abs(value: value);
@@ -130,54 +178,6 @@ public static class BinaryIntegerFunctions
             return result;
         }
     }
-    public static TResult MortonPair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
-        var x = TResult.CreateTruncating(value: value);
-        var y = TResult.CreateTruncating(value: other);
-
-        if (BinaryIntegerConstants<TResult>.Size > 128) {
-            var i = (BitOperations.Log2(value: ((uint)(BinaryIntegerConstants<TResult>.Size))) - 7);
-
-            do {
-                x = ((x | (x << (1 << i))) & (i).NthFermatMask<TResult>());
-                y = ((y | (y << (1 << i))) & (i).NthFermatMask<TResult>());
-            } while (0 < --i);
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 64) {
-            x = ((x | (x << 64)) & (6).NthFermatMask<TResult>());
-            y = ((y | (y << 64)) & (6).NthFermatMask<TResult>());
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 32) {
-            x = ((x | (x << 32)) & (5).NthFermatMask<TResult>());
-            y = ((y | (y << 32)) & (5).NthFermatMask<TResult>());
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 16) {
-            x = ((x | (x << 16)) & (4).NthFermatMask<TResult>());
-            y = ((y | (y << 16)) & (4).NthFermatMask<TResult>());
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 8) {
-            x = ((x | (x << 8)) & (3).NthFermatMask<TResult>());
-            y = ((y | (y << 8)) & (3).NthFermatMask<TResult>());
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 4) {
-            x = ((x | (x << 4)) & (2).NthFermatMask<TResult>());
-            y = ((y | (y << 4)) & (2).NthFermatMask<TResult>());
-        }
-
-        if (BinaryIntegerConstants<TResult>.Size > 2) {
-            x = ((x | (x << 2)) & (1).NthFermatMask<TResult>());
-            y = ((y | (y << 2)) & (1).NthFermatMask<TResult>());
-        }
-
-        x = ((x | (x << 1)) & (0).NthFermatMask<TResult>());
-        y = ((y | (y << 1)) & (0).NthFermatMask<TResult>());
-
-        return (x | (y << 1));
-    }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T MostSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
         (T.CreateTruncating(value: BinaryIntegerConstants<T>.Size) - T.LeadingZeroCount(value: value));
@@ -234,6 +234,45 @@ public static class BinaryIntegerFunctions
     }
     public static T ReflectedBinaryEncode<T>(this T value) where T : IBinaryInteger<T> =>
         (value ^ (value >> 1));
+    public static T ReverseBits<T>(this T value) where T : IBinaryInteger<T> {
+        if (BinaryIntegerConstants<T>.Size > 2) {
+            value = (((value >> 1) & 0.NthFermatMask<T>()) | ((value & 0.NthFermatMask<T>()) << 1));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 4) {
+            value = (((value >> 2) & 1.NthFermatMask<T>()) | ((value & 1.NthFermatMask<T>()) << 2));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 8) {
+            value = (((value >> 4) & 2.NthFermatMask<T>()) | ((value & 2.NthFermatMask<T>()) << 4));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 16) {
+            value = (((value >> 8) & 3.NthFermatMask<T>()) | ((value & 3.NthFermatMask<T>()) << 8));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 32) {
+            value = (((value >> 16) & 4.NthFermatMask<T>()) | ((value & 4.NthFermatMask<T>()) << 16));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 64) {
+            value = (((value >> 32) & 5.NthFermatMask<T>()) | ((value & 5.NthFermatMask<T>()) << 32));
+        }
+
+        if (BinaryIntegerConstants<T>.Size > 128) {
+            var index = 0;
+            var limit = (int.Log2(value: BinaryIntegerConstants<T>.Size) - 7);
+
+            do {
+                var offset = (index + 6);
+                var shift = (64 << index);
+
+                value = (((value >> shift) & offset.NthFermatMask<T>()) | ((value & offset.NthFermatMask<T>()) << shift));
+            } while (++index < limit);
+        }
+
+        return ((value >> (BinaryIntegerConstants<T>.Size >> 1)) | (value << (BinaryIntegerConstants<T>.Size >> 1)));
+    }
     public static T ReverseDigits<T>(this T value) where T : IBinaryInteger<T> {
         var quotient = value;
         var result = T.Zero;
