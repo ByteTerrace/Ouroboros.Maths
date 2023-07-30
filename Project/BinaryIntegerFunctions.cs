@@ -21,13 +21,16 @@ public static class BinaryIntegerFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T NthFermatNumber<T>(this int value) where T : IBinaryInteger<T> =>
         ((T.One << (1 << value)) + T.One);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T NthPowerOfTwo<T>(this int value) where T : IBinaryInteger<T> =>
+        (T.One << value);
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
         var x = TResult.CreateTruncating(value: value);
         var y = TResult.CreateTruncating(value: other);
 
-        if (bitCount > 128) {
+        if (bitCount > 7.NthPowerOfTwo<int>()) {
             var i = int.Log2(value: (bitCount - 7));
 
             do {
@@ -36,40 +39,40 @@ public static class BinaryIntegerFunctions
             } while (0 < --i);
         }
 
-        if (bitCount > 64) {
-            x = ((x | (x << 64)) & 6.NthFermatMask<TResult>());
-            y = ((y | (y << 64)) & 6.NthFermatMask<TResult>());
+        if (bitCount > 6.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
+            y = ((y | (y << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
         }
 
-        if (bitCount > 32) {
-            x = ((x | (x << 32)) & 5.NthFermatMask<TResult>());
-            y = ((y | (y << 32)) & 5.NthFermatMask<TResult>());
+        if (bitCount > 5.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
+            y = ((y | (y << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
         }
 
-        if (bitCount > 16) {
-            x = ((x | (x << 16)) & 4.NthFermatMask<TResult>());
-            y = ((y | (y << 16)) & 4.NthFermatMask<TResult>());
+        if (bitCount > 4.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
+            y = ((y | (y << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
         }
 
-        if (bitCount > 8) {
-            x = ((x | (x << 8)) & 3.NthFermatMask<TResult>());
-            y = ((y | (y << 8)) & 3.NthFermatMask<TResult>());
+        if (bitCount > 3.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
+            y = ((y | (y << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
         }
 
-        if (bitCount > 4) {
-            x = ((x | (x << 4)) & 2.NthFermatMask<TResult>());
-            y = ((y | (y << 4)) & 2.NthFermatMask<TResult>());
+        if (bitCount > 2.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
+            y = ((y | (y << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
         }
 
-        if (bitCount > 2) {
-            x = ((x | (x << 2)) & 1.NthFermatMask<TResult>());
-            y = ((y | (y << 2)) & 1.NthFermatMask<TResult>());
+        if (bitCount > 1.NthPowerOfTwo<int>()) {
+            x = ((x | (x << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
+            y = ((y | (y << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
         }
 
-        x = ((x | (x << 1)) & 0.NthFermatMask<TResult>());
-        y = ((y | (y << 1)) & 0.NthFermatMask<TResult>());
+        x = ((x | (x << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
+        y = ((y | (y << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
 
-        return (x | (y << 1));
+        return (x | (y << 0.NthPowerOfTwo<int>()));
     }
     public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
         (value & (value - T.One));
@@ -184,33 +187,33 @@ public static class BinaryIntegerFunctions
     public static T ReflectedBinaryDecode<T>(this T value) where T : IBinaryInteger<T> {
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
 
-        value ^= (value >> 1);
+        value ^= (value >> 0.NthPowerOfTwo<int>());
 
-        if (bitCount > 2) {
-            value ^= (value >> 2);
+        if (bitCount > 1.NthPowerOfTwo<int>()) {
+            value ^= (value >> 1.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 4) {
-            value ^= (value >> 4);
+        if (bitCount > 2.NthPowerOfTwo<int>()) {
+            value ^= (value >> 2.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 8) {
-            value ^= (value >> 8);
+        if (bitCount > 3.NthPowerOfTwo<int>()) {
+            value ^= (value >> 3.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 16) {
-            value ^= (value >> 16);
+        if (bitCount > 4.NthPowerOfTwo<int>()) {
+            value ^= (value >> 4.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 32) {
-            value ^= (value >> 32);
+        if (bitCount > 5.NthPowerOfTwo<int>()) {
+            value ^= (value >> 5.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 64) {
-            value ^= (value >> 64);
+        if (bitCount > 6.NthPowerOfTwo<int>()) {
+            value ^= (value >> 6.NthPowerOfTwo<int>());
         }
 
-        if (bitCount > 128) {
+        if (bitCount > 7.NthPowerOfTwo<int>()) {
             var i = int.Log2(value: (bitCount - 7));
 
             do {
@@ -225,37 +228,37 @@ public static class BinaryIntegerFunctions
     public static T ReverseBits<T>(this T value) where T : IBinaryInteger<T> {
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
 
-        if (bitCount > 2) {
-            value = (((value >> 1) & 0.NthFermatMask<T>()) | ((value & 0.NthFermatMask<T>()) << 1));
+        if (bitCount > 1.NthPowerOfTwo<int>()) {
+            value = (((value >> 0.NthPowerOfTwo<int>()) & 0.NthFermatMask<T>()) | ((value & 0.NthFermatMask<T>()) << 0.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 4) {
-            value = (((value >> 2) & 1.NthFermatMask<T>()) | ((value & 1.NthFermatMask<T>()) << 2));
+        if (bitCount > 2.NthPowerOfTwo<int>()) {
+            value = (((value >> 1.NthPowerOfTwo<int>()) & 1.NthFermatMask<T>()) | ((value & 1.NthFermatMask<T>()) << 1.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 8) {
-            value = (((value >> 4) & 2.NthFermatMask<T>()) | ((value & 2.NthFermatMask<T>()) << 4));
+        if (bitCount > 3.NthPowerOfTwo<int>()) {
+            value = (((value >> 2.NthPowerOfTwo<int>()) & 2.NthFermatMask<T>()) | ((value & 2.NthFermatMask<T>()) << 2.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 16) {
-            value = (((value >> 8) & 3.NthFermatMask<T>()) | ((value & 3.NthFermatMask<T>()) << 8));
+        if (bitCount > 4.NthPowerOfTwo<int>()) {
+            value = (((value >> 3.NthPowerOfTwo<int>()) & 3.NthFermatMask<T>()) | ((value & 3.NthFermatMask<T>()) << 3.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 32) {
-            value = (((value >> 16) & 4.NthFermatMask<T>()) | ((value & 4.NthFermatMask<T>()) << 16));
+        if (bitCount > 5.NthPowerOfTwo<int>()) {
+            value = (((value >> 4.NthPowerOfTwo<int>()) & 4.NthFermatMask<T>()) | ((value & 4.NthFermatMask<T>()) << 4.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 64) {
-            value = (((value >> 32) & 5.NthFermatMask<T>()) | ((value & 5.NthFermatMask<T>()) << 32));
+        if (bitCount > 6.NthPowerOfTwo<int>()) {
+            value = (((value >> 5.NthPowerOfTwo<int>()) & 5.NthFermatMask<T>()) | ((value & 5.NthFermatMask<T>()) << 5.NthPowerOfTwo<int>()));
         }
 
-        if (bitCount > 128) {
+        if (bitCount > 7.NthPowerOfTwo<int>()) {
             var index = 0;
             var limit = int.Log2(value: (bitCount - 7));
 
             do {
                 var offset = (index + 6);
-                var shift = (64 << index);
+                var shift = (6.NthPowerOfTwo<int>() << index);
 
                 value = (((value >> shift) & offset.NthFermatMask<T>()) | ((value & offset.NthFermatMask<T>()) << shift));
             } while (++index < limit);
