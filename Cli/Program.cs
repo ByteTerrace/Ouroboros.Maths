@@ -5,7 +5,7 @@ using Ouroboros.Maths;
 using System.Buffers.Binary;
 
 #if DEBUG
-for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 2U) {
+for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 1U) {
     uint modularInverse;
     uint reversedBits;
     uint reversedDigits;
@@ -24,7 +24,7 @@ for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 2U) {
     }
 }
 #else
-_ = BenchmarkRunner.Run<BinaryIntegerBenchmarks>();
+_ = BenchmarkRunner.Run<SandboxBenchmarks>();
 #endif
 
 [DisassemblyDiagnoser]
@@ -48,7 +48,7 @@ public class BinaryIntegerBenchmarks
     public int ClearLowestSetBitS() => Value32S.ClearLowestSetBit();
     [Benchmark]
     public uint DigitalRoot() => Value32.DigitalRoot();
-    [Benchmark]
+    //[Benchmark]
     public int DigitalRootS() => Value32S.DigitalRoot();
     [Benchmark]
     public void EnumerateDigits() => Value32.EnumerateDigits().Consume(consumer: m_consumer);
@@ -76,7 +76,7 @@ public class BinaryIntegerBenchmarks
     public int LeastSignificantDigitS() => Value32S.LeastSignificantDigit();
     [Benchmark]
     public uint LogarithmBase10() => Value32.LogarithmBase10();
-    [Benchmark]
+    //[Benchmark]
     public int LogarithmBase10S() => Value32S.LogarithmBase10();
     [Benchmark]
     public uint MostSignificantBit() => Value32.MostSignificantBit();
@@ -110,4 +110,12 @@ public class BinaryIntegerBenchmarks
     public uint ReverseDigits() => Value32.ReverseDigits();
     [Benchmark]
     public int ReverseDigitsS() => Value32S.ReverseDigits();
+}
+[DisassemblyDiagnoser]
+[MemoryDiagnoser]
+public class SandboxBenchmarks
+{
+    private static Pcg32XshRr Rng { get; } = Pcg32XshRr.New();
+
+    private static uint Value32 => Rng.NextUInt32();
 }

@@ -27,52 +27,39 @@ public static class BinaryIntegerFunctions
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
+        var shift = 7.NthPowerOfTwo<int>();
         var x = TResult.CreateTruncating(value: value);
         var y = TResult.CreateTruncating(value: other);
 
-        if (bitCount > 7.NthPowerOfTwo<int>()) {
+        if (bitCount > shift) {
             var i = (int.Log2(value: bitCount) - 7);
 
             do {
-                x = ((x | (x << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
-                y = ((y | (y << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
+                DistributeBits(bitCount: bitCount, isLoopIteration: true, offset: (i + 6), shift: ref shift, x: ref x, y: ref y);
             } while (0 < --i);
         }
 
-        if (bitCount > 6.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
-            y = ((y | (y << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 6, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 5, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 4, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 3, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 2, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 1, shift: ref shift, x: ref x, y: ref y);
+        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 0, shift: ref shift, x: ref x, y: ref y);
+
+        return (x | (y << shift));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void DistributeBits(int bitCount, bool isLoopIteration, int offset, ref int shift, ref TResult x, ref TResult y) {
+            shift = offset.NthPowerOfTwo<int>();
+
+            if (isLoopIteration || (bitCount > shift)) {
+                var mask = offset.NthFermatMask<TResult>();
+
+                x = ((x | (x << shift)) & mask);
+                y = ((y | (y << shift)) & mask);
+            }
         }
-
-        if (bitCount > 5.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
-            y = ((y | (y << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 4.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
-            y = ((y | (y << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 3.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
-            y = ((y | (y << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 2.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
-            y = ((y | (y << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 1.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
-            y = ((y | (y << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
-        }
-
-        x = ((x | (x << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
-        y = ((y | (y << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
-
-        return (x | (y << 0.NthPowerOfTwo<int>()));
     }
     public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
         (value & (value - T.One));
@@ -227,27 +214,45 @@ public static class BinaryIntegerFunctions
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
 
         if (bitCount > 1.NthPowerOfTwo<int>()) {
-            value = (((value >> 0.NthPowerOfTwo<int>()) & 0.NthFermatMask<T>()) | ((value & 0.NthFermatMask<T>()) << 0.NthPowerOfTwo<int>()));
+            var mask = 0.NthFermatMask<T>();
+            var shift = 0.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 2.NthPowerOfTwo<int>()) {
-            value = (((value >> 1.NthPowerOfTwo<int>()) & 1.NthFermatMask<T>()) | ((value & 1.NthFermatMask<T>()) << 1.NthPowerOfTwo<int>()));
+            var mask = 1.NthFermatMask<T>();
+            var shift = 1.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 3.NthPowerOfTwo<int>()) {
-            value = (((value >> 2.NthPowerOfTwo<int>()) & 2.NthFermatMask<T>()) | ((value & 2.NthFermatMask<T>()) << 2.NthPowerOfTwo<int>()));
+            var mask = 2.NthFermatMask<T>();
+            var shift = 2.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 4.NthPowerOfTwo<int>()) {
-            value = (((value >> 3.NthPowerOfTwo<int>()) & 3.NthFermatMask<T>()) | ((value & 3.NthFermatMask<T>()) << 3.NthPowerOfTwo<int>()));
+            var mask = 3.NthFermatMask<T>();
+            var shift = 3.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 5.NthPowerOfTwo<int>()) {
-            value = (((value >> 4.NthPowerOfTwo<int>()) & 4.NthFermatMask<T>()) | ((value & 4.NthFermatMask<T>()) << 4.NthPowerOfTwo<int>()));
+            var mask = 4.NthFermatMask<T>();
+            var shift = 4.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 6.NthPowerOfTwo<int>()) {
-            value = (((value >> 5.NthPowerOfTwo<int>()) & 5.NthFermatMask<T>()) | ((value & 5.NthFermatMask<T>()) << 5.NthPowerOfTwo<int>()));
+            var mask = 5.NthFermatMask<T>();
+            var shift = 5.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
         }
 
         if (bitCount > 7.NthPowerOfTwo<int>()) {
