@@ -173,36 +173,21 @@ public static class BinaryIntegerFunctions
     public static T PopulationParity<T>(this T value) where T : IBinaryInteger<T> =>
         (T.PopCount(value: value) & T.One);
     public static T ReflectedBinaryDecode<T>(this T value) where T : IBinaryInteger<T> {
+        const int loopOffset = 8;
+
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
 
-        value ^= (value >> 0.NthPowerOfTwo<int>());
+        if (0.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 0.NthPowerOfTwo<int>()); }
+        if (1.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 1.NthPowerOfTwo<int>()); }
+        if (2.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 2.NthPowerOfTwo<int>()); }
+        if (3.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 3.NthPowerOfTwo<int>()); }
+        if (4.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 4.NthPowerOfTwo<int>()); }
+        if (5.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 5.NthPowerOfTwo<int>()); }
+        if (6.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 6.NthPowerOfTwo<int>()); }
+        if (7.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 7.NthPowerOfTwo<int>()); }
 
-        if (bitCount > 1.NthPowerOfTwo<int>()) {
-            value ^= (value >> 1.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 2.NthPowerOfTwo<int>()) {
-            value ^= (value >> 2.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 3.NthPowerOfTwo<int>()) {
-            value ^= (value >> 3.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 4.NthPowerOfTwo<int>()) {
-            value ^= (value >> 4.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 5.NthPowerOfTwo<int>()) {
-            value ^= (value >> 5.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 6.NthPowerOfTwo<int>()) {
-            value ^= (value >> 6.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var i = (int.Log2(value: bitCount) - 7);
+        if (loopOffset.NthPowerOfTwo<int>() < bitCount) {
+            var i = (int.CreateChecked(value: BinaryIntegerConstants<T>.Log2Size) - loopOffset);
 
             do {
                 value ^= (value >> (bitCount >> i));
