@@ -26,39 +26,38 @@ public static class BinaryIntegerFunctions
         (T.One << value);
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
-        var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
-        var shift = 7.NthPowerOfTwo<int>();
-        var x = TResult.CreateTruncating(value: value);
-        var y = TResult.CreateTruncating(value: other);
+        const int loopOffset = 7;
 
-        if (bitCount > shift) {
-            var i = (int.Log2(value: bitCount) - 7);
+        var bitCountDividedByTwo = (int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size) >> 1);
+        var evenBits = TResult.CreateTruncating(value: other);
+        var oddBits = TResult.CreateTruncating(value: value);
+        var shift = loopOffset.NthPowerOfTwo<int>();
+
+        if (shift < bitCountDividedByTwo) {
+            var i = (int.CreateChecked(value: BinaryIntegerConstants<TResult>.Log2Size) - loopOffset);
 
             do {
-                DistributeBits(bitCount: bitCount, isLoopIteration: true, offset: (i + 6), shift: ref shift, x: ref x, y: ref y);
+                DistributeBits(offset: (i + (loopOffset - 1)), evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift);
             } while (0 < --i);
         }
 
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 6, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 5, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 4, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 3, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 2, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 1, shift: ref shift, x: ref x, y: ref y);
-        DistributeBits(bitCount: bitCount, isLoopIteration: false, offset: 0, shift: ref shift, x: ref x, y: ref y);
+        if (6.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 6, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (5.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 5, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (4.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 4, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (3.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 3, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (2.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 2, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (1.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 1, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
+        if (0.NthPowerOfTwo<int>() < bitCountDividedByTwo) { DistributeBits(offset: 0, evenBits: ref evenBits, oddBits: ref oddBits, shift: ref shift); }
 
-        return (x | (y << shift));
+        return (oddBits | (evenBits << shift));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void DistributeBits(int bitCount, bool isLoopIteration, int offset, ref int shift, ref TResult x, ref TResult y) {
+        static void DistributeBits(int offset, ref TResult evenBits, ref TResult oddBits, ref int shift) {
+            var mask = offset.NthFermatMask<TResult>();
+
             shift = offset.NthPowerOfTwo<int>();
-
-            if (isLoopIteration || (bitCount > shift)) {
-                var mask = offset.NthFermatMask<TResult>();
-
-                x = ((x | (x << shift)) & mask);
-                y = ((y | (y << shift)) & mask);
-            }
+            evenBits = ((evenBits | (evenBits << shift)) & mask);
+            oddBits = ((oddBits | (oddBits << shift)) & mask);
         }
     }
     public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
