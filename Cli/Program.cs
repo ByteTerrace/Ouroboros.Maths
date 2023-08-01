@@ -5,7 +5,7 @@ using Ouroboros.Maths;
 using System.Buffers.Binary;
 
 #if DEBUG
-for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 1U) {
+for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 2U) {
     uint modularInverse;
     uint reversedBits;
     uint reversedDigits;
@@ -50,9 +50,9 @@ public class BinaryIntegerBenchmarks
     public uint DigitalRoot() => Value32.DigitalRoot();
     //[Benchmark]
     public int DigitalRootS() => Value32S.DigitalRoot();
-    [Benchmark]
+    //[Benchmark]
     public void EnumerateDigits() => Value32.EnumerateDigits().Consume(consumer: m_consumer);
-    [Benchmark]
+    //[Benchmark]
     public void EnumerateDigitsS() => Value32S.EnumerateDigits().Consume(consumer: m_consumer);
     [Benchmark]
     public uint ExtractLowestSetBit() => Value32.ExtractLowestSetBit();
@@ -108,7 +108,7 @@ public class BinaryIntegerBenchmarks
     public int ReverseBitsS() => Value32S.ReverseBits();
     [Benchmark]
     public uint ReverseDigits() => Value32.ReverseDigits();
-    [Benchmark]
+    //[Benchmark]
     public int ReverseDigitsS() => Value32S.ReverseDigits();
 }
 [DisassemblyDiagnoser]

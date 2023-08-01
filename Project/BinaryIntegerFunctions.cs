@@ -64,6 +64,45 @@ public static class BinaryIntegerFunctions
             oddBits = ((oddBits | (oddBits << shift)) & mask);
         }
     }
+    public static (TResult, TResult) BitwiseUnpair<TInput, TResult>(this TInput value) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        return (UnpairCore(value: value), UnpairCore(value: (value >> 1)));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void AggregateBits(int offset, int shift, ref TInput value) {
+            value = (((value | (value >> shift)) & offset.NthFermatMask<TInput>()));
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static TResult UnpairCore(TInput value) {
+            const int loopOffset = 8;
+
+            int offset;
+            int shift;
+
+            var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
+
+            value &= 0.NthFermatMask<TInput>();
+
+            offset = 0; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 1; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 2; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 3; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 4; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 5; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 6; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+
+            if (loopOffset.NthPowerOfTwo<int>() < bitCount) {
+                var i = (int.CreateChecked(value: BinaryIntegerConstants<TResult>.Log2Size) - loopOffset);
+
+                do {
+                    shift = (++offset).NthPowerOfTwo<int>();
+
+                    AggregateBits(offset: (offset + 1), shift: shift, value: ref value);
+                } while (0 < --i);
+            }
+
+            return TResult.CreateTruncating(value: value);
+        }
+    }
     public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
         (value & (value - T.One));
     public static T DigitalRoot<T>(this T value) where T : IBinaryInteger<T> {
