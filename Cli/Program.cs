@@ -35,6 +35,8 @@ public class BinaryIntegerBenchmarks
 
     private static uint Value32 => Rng.NextUInt32();
     private static int Value32S => ((int)Rng.NextUInt32());
+    private static ulong Value64 => SecureRandom.NextUInt64();
+    private static long Value64S => ((long)SecureRandom.NextUInt64());
 
     private readonly Consumer m_consumer = new();
 
@@ -42,6 +44,10 @@ public class BinaryIntegerBenchmarks
     public ulong BitwisePair() => Value32.BitwisePair<uint, ulong>(other: Value32);
     [Benchmark]
     public long BitwisePairS() => Value32S.BitwisePair<int, long>(other: Value32S);
+    [Benchmark]
+    public (uint, uint) BitwiseUnpair() => Value64.BitwiseUnpair<ulong, uint>();
+    [Benchmark]
+    public (int, int) BitwiseUnpairS() => Value64S.BitwiseUnpair<long, int>();
     [Benchmark]
     public uint ClearLowestSetBit() => Value32.ClearLowestSetBit();
     [Benchmark]
