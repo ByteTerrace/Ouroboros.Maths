@@ -24,7 +24,7 @@ for (var i = 3U; (i < (uint.MaxValue - 2U)); i += 2U) {
     }
 }
 #else
-_ = BenchmarkRunner.Run<BinaryIntegerBenchmarks>();
+_ = BenchmarkRunner.Run<SandboxBenchmarks>();
 #endif
 
 [DisassemblyDiagnoser]
@@ -35,6 +35,8 @@ public class BinaryIntegerBenchmarks
 
     private static uint Value32 => Rng.NextUInt32();
     private static int Value32S => ((int)Rng.NextUInt32());
+    private static ulong Value64 => SecureRandom.NextUInt64();
+    private static long Value64S => ((long)SecureRandom.NextUInt64());
 
     private readonly Consumer m_consumer = new();
 
@@ -43,16 +45,20 @@ public class BinaryIntegerBenchmarks
     [Benchmark]
     public long BitwisePairS() => Value32S.BitwisePair<int, long>(other: Value32S);
     [Benchmark]
+    public (uint, uint) BitwiseUnpair() => Value64.BitwiseUnpair<ulong, uint>();
+    [Benchmark]
+    public (int, int) BitwiseUnpairS() => Value64S.BitwiseUnpair<long, int>();
+    [Benchmark]
     public uint ClearLowestSetBit() => Value32.ClearLowestSetBit();
     [Benchmark]
     public int ClearLowestSetBitS() => Value32S.ClearLowestSetBit();
     [Benchmark]
     public uint DigitalRoot() => Value32.DigitalRoot();
-    [Benchmark]
+    //[Benchmark]
     public int DigitalRootS() => Value32S.DigitalRoot();
-    [Benchmark]
+    //[Benchmark]
     public void EnumerateDigits() => Value32.EnumerateDigits().Consume(consumer: m_consumer);
-    [Benchmark]
+    //[Benchmark]
     public void EnumerateDigitsS() => Value32S.EnumerateDigits().Consume(consumer: m_consumer);
     [Benchmark]
     public uint ExtractLowestSetBit() => Value32.ExtractLowestSetBit();
@@ -76,7 +82,7 @@ public class BinaryIntegerBenchmarks
     public int LeastSignificantDigitS() => Value32S.LeastSignificantDigit();
     [Benchmark]
     public uint LogarithmBase10() => Value32.LogarithmBase10();
-    [Benchmark]
+    //[Benchmark]
     public int LogarithmBase10S() => Value32S.LogarithmBase10();
     [Benchmark]
     public uint MostSignificantBit() => Value32.MostSignificantBit();
@@ -108,6 +114,14 @@ public class BinaryIntegerBenchmarks
     public int ReverseBitsS() => Value32S.ReverseBits();
     [Benchmark]
     public uint ReverseDigits() => Value32.ReverseDigits();
-    [Benchmark]
+    //[Benchmark]
     public int ReverseDigitsS() => Value32S.ReverseDigits();
+}
+[DisassemblyDiagnoser]
+[MemoryDiagnoser]
+public class SandboxBenchmarks
+{
+    private static Pcg32XshRr Rng { get; } = Pcg32XshRr.New();
+
+    private static uint Value32 => Rng.NextUInt32();
 }

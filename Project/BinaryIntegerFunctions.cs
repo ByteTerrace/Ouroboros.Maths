@@ -26,53 +26,82 @@ public static class BinaryIntegerFunctions
         (T.One << value);
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
-        var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
-        var x = TResult.CreateTruncating(value: value);
-        var y = TResult.CreateTruncating(value: other);
+        const int loopOffset = 7;
 
-        if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var i = (int.Log2(value: bitCount) - 7);
+        int offset;
+        int shift;
+
+        var bitCountDividedByTwo = (int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size) >> 1);
+        var evenBits = TResult.CreateTruncating(value: other);
+        var oddBits = TResult.CreateTruncating(value: value);
+
+        if (loopOffset.NthPowerOfTwo<int>() < bitCountDividedByTwo) {
+            var i = ((int.CreateChecked(value: BinaryIntegerConstants<TResult>.Log2Size) - loopOffset) - 1);
 
             do {
-                x = ((x | (x << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
-                y = ((y | (y << i.NthPowerOfTwo<int>())) & i.NthFermatMask<TResult>());
+                offset = (i + (loopOffset - 1));
+                shift = offset.NthPowerOfTwo<int>();
+
+                DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift);
             } while (0 < --i);
         }
 
-        if (bitCount > 6.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
-            y = ((y | (y << 6.NthPowerOfTwo<int>())) & 6.NthFermatMask<TResult>());
+        offset = 6; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 5; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 4; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 3; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 2; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 1; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+        offset = 0; if ((shift = offset.NthPowerOfTwo<int>()) < bitCountDividedByTwo) { DistributeBits(evenBits: ref evenBits, oddBits: ref oddBits, offset: offset, shift: shift); }
+
+        return (oddBits | (evenBits << shift));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void DistributeBits(int offset, int shift, ref TResult evenBits, ref TResult oddBits) {
+            var mask = offset.NthFermatMask<TResult>();
+
+            evenBits = ((evenBits | (evenBits << shift)) & mask);
+            oddBits = ((oddBits | (oddBits << shift)) & mask);
         }
+    }
+    public static (TResult, TResult) BitwiseUnpair<TInput, TResult>(this TInput value) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        return (UnpairCore(value: value), UnpairCore(value: (value >> 1)));
 
-        if (bitCount > 5.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
-            y = ((y | (y << 5.NthPowerOfTwo<int>())) & 5.NthFermatMask<TResult>());
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void AggregateBits(int offset, int shift, ref TInput value) {
+            value = (((value | (value >> shift)) & offset.NthFermatMask<TInput>()));
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static TResult UnpairCore(TInput value) {
+            const int loopOffset = 8;
 
-        if (bitCount > 4.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
-            y = ((y | (y << 4.NthPowerOfTwo<int>())) & 4.NthFermatMask<TResult>());
+            int offset;
+            int shift;
+
+            var bitCount = int.CreateChecked(value: BinaryIntegerConstants<TResult>.Size);
+
+            value &= 0.NthFermatMask<TInput>();
+
+            offset = 0; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 1; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 2; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 3; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 4; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 5; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+            offset = 6; if ((shift = offset.NthPowerOfTwo<int>()) < bitCount) { AggregateBits(offset: (offset + 1), shift: shift, value: ref value); }
+
+            if (loopOffset.NthPowerOfTwo<int>() < bitCount) {
+                var i = (int.CreateChecked(value: BinaryIntegerConstants<TResult>.Log2Size) - loopOffset);
+
+                do {
+                    shift = (++offset).NthPowerOfTwo<int>();
+
+                    AggregateBits(offset: (offset + 1), shift: shift, value: ref value);
+                } while (0 < --i);
+            }
+
+            return TResult.CreateTruncating(value: value);
         }
-
-        if (bitCount > 3.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
-            y = ((y | (y << 3.NthPowerOfTwo<int>())) & 3.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 2.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
-            y = ((y | (y << 2.NthPowerOfTwo<int>())) & 2.NthFermatMask<TResult>());
-        }
-
-        if (bitCount > 1.NthPowerOfTwo<int>()) {
-            x = ((x | (x << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
-            y = ((y | (y << 1.NthPowerOfTwo<int>())) & 1.NthFermatMask<TResult>());
-        }
-
-        x = ((x | (x << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
-        y = ((y | (y << 0.NthPowerOfTwo<int>())) & 0.NthFermatMask<TResult>());
-
-        return (x | (y << 0.NthPowerOfTwo<int>()));
     }
     public static T ClearLowestSetBit<T>(this T value) where T : IBinaryInteger<T> =>
         (value & (value - T.One));
@@ -183,36 +212,21 @@ public static class BinaryIntegerFunctions
     public static T PopulationParity<T>(this T value) where T : IBinaryInteger<T> =>
         (T.PopCount(value: value) & T.One);
     public static T ReflectedBinaryDecode<T>(this T value) where T : IBinaryInteger<T> {
+        const int loopOffset = 8;
+
         var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
 
-        value ^= (value >> 0.NthPowerOfTwo<int>());
+        if (0.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 0.NthPowerOfTwo<int>()); }
+        if (1.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 1.NthPowerOfTwo<int>()); }
+        if (2.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 2.NthPowerOfTwo<int>()); }
+        if (3.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 3.NthPowerOfTwo<int>()); }
+        if (4.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 4.NthPowerOfTwo<int>()); }
+        if (5.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 5.NthPowerOfTwo<int>()); }
+        if (6.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 6.NthPowerOfTwo<int>()); }
+        if (7.NthPowerOfTwo<int>() < bitCount) { value ^= (value >> 7.NthPowerOfTwo<int>()); }
 
-        if (bitCount > 1.NthPowerOfTwo<int>()) {
-            value ^= (value >> 1.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 2.NthPowerOfTwo<int>()) {
-            value ^= (value >> 2.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 3.NthPowerOfTwo<int>()) {
-            value ^= (value >> 3.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 4.NthPowerOfTwo<int>()) {
-            value ^= (value >> 4.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 5.NthPowerOfTwo<int>()) {
-            value ^= (value >> 5.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 6.NthPowerOfTwo<int>()) {
-            value ^= (value >> 6.NthPowerOfTwo<int>());
-        }
-
-        if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var i = (int.Log2(value: bitCount) - 7);
+        if (loopOffset.NthPowerOfTwo<int>() < bitCount) {
+            var i = (int.CreateChecked(value: BinaryIntegerConstants<T>.Log2Size) - loopOffset);
 
             do {
                 value ^= (value >> (bitCount >> i));
@@ -224,45 +238,37 @@ public static class BinaryIntegerFunctions
     public static T ReflectedBinaryEncode<T>(this T value) where T : IBinaryInteger<T> =>
         (value ^ (value >> 1));
     public static T ReverseBits<T>(this T value) where T : IBinaryInteger<T> {
-        var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
+        const int loopOffset = 7;
 
-        if (bitCount > 1.NthPowerOfTwo<int>()) {
-            value = (((value >> 0.NthPowerOfTwo<int>()) & 0.NthFermatMask<T>()) | ((value & 0.NthFermatMask<T>()) << 0.NthPowerOfTwo<int>()));
-        }
+        int offset;
 
-        if (bitCount > 2.NthPowerOfTwo<int>()) {
-            value = (((value >> 1.NthPowerOfTwo<int>()) & 1.NthFermatMask<T>()) | ((value & 1.NthFermatMask<T>()) << 1.NthPowerOfTwo<int>()));
-        }
+        var bitCountDividedByTwo = (int.CreateChecked(value: BinaryIntegerConstants<T>.Size) >> 1);
 
-        if (bitCount > 3.NthPowerOfTwo<int>()) {
-            value = (((value >> 2.NthPowerOfTwo<int>()) & 2.NthFermatMask<T>()) | ((value & 2.NthFermatMask<T>()) << 2.NthPowerOfTwo<int>()));
-        }
+        offset = 0; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 1; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 2; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 3; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 4; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 5; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
+        offset = 6; if (offset.NthPowerOfTwo<int>() < bitCountDividedByTwo) { SwapBitPairs(offset: offset, value: ref value); }
 
-        if (bitCount > 4.NthPowerOfTwo<int>()) {
-            value = (((value >> 3.NthPowerOfTwo<int>()) & 3.NthFermatMask<T>()) | ((value & 3.NthFermatMask<T>()) << 3.NthPowerOfTwo<int>()));
-        }
-
-        if (bitCount > 5.NthPowerOfTwo<int>()) {
-            value = (((value >> 4.NthPowerOfTwo<int>()) & 4.NthFermatMask<T>()) | ((value & 4.NthFermatMask<T>()) << 4.NthPowerOfTwo<int>()));
-        }
-
-        if (bitCount > 6.NthPowerOfTwo<int>()) {
-            value = (((value >> 5.NthPowerOfTwo<int>()) & 5.NthFermatMask<T>()) | ((value & 5.NthFermatMask<T>()) << 5.NthPowerOfTwo<int>()));
-        }
-
-        if (bitCount > 7.NthPowerOfTwo<int>()) {
-            var index = 0;
-            var limit = (int.Log2(value: bitCount) - 7);
+        if (loopOffset.NthPowerOfTwo<int>() < bitCountDividedByTwo) {
+            var i = ((int.CreateChecked(value: BinaryIntegerConstants<T>.Log2Size) - loopOffset) - 1);
 
             do {
-                var mask = (index + 6).NthFermatMask<T>();
-                var shift = (6.NthPowerOfTwo<int>() << index);
-
-                value = (((value >> shift) & mask) | ((value & mask) << shift));
-            } while (++index < limit);
+                SwapBitPairs(offset: offset++, value: ref value);
+            } while (0 < --i);
         }
 
-        return ((value >> (bitCount >> 1)) | (value << (bitCount >> 1)));
+        return ((value >> bitCountDividedByTwo) | (value << bitCountDividedByTwo));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void SwapBitPairs(int offset, ref T value) {
+            var mask = offset.NthFermatMask<T>();
+            var shift = offset.NthPowerOfTwo<int>();
+
+            value = (((value >> shift) & mask) | ((value & mask) << shift));
+        }
     }
     public static T ReverseDigits<T>(this T value) where T : IBinaryInteger<T> {
         var quotient = T.Abs(value: value);
