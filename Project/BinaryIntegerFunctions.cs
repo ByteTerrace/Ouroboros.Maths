@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace Ouroboros.Maths;
 
@@ -26,6 +27,29 @@ public static class BinaryIntegerFunctions
         (T.One << value);
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        switch (value) {
+            case short:
+            case ushort:
+                if (Bmi2.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitDeposit(mask: 0.NthFermatMask<uint>(), value: uint.CreateTruncating(value: value))) |
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitDeposit(mask: (0.NthFermatMask<uint>() << 1), value: uint.CreateTruncating(value: other)))
+                    );
+                }
+                break;
+            case int:
+            case uint:
+                if (Bmi2.X64.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitDeposit(mask: 0.NthFermatMask<ulong>(), value: ulong.CreateTruncating(value: value))) |
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitDeposit(mask: (0.NthFermatMask<ulong>() << 1), value: ulong.CreateTruncating(value: other)))
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+
         const int loopOffset = 7;
 
         int offset;
@@ -65,6 +89,29 @@ public static class BinaryIntegerFunctions
         }
     }
     public static (TResult, TResult) BitwiseUnpair<TInput, TResult>(this TInput value) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        switch (value) {
+            case int:
+            case uint:
+                if (Bmi2.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitExtract(mask: 0.NthFermatMask<uint>(), value: uint.CreateTruncating(value: value))),
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitExtract(mask: (0.NthFermatMask<uint>() << 1), value: uint.CreateTruncating(value: value)))
+                    );
+                }
+                break;
+            case long:
+            case ulong:
+                if (Bmi2.X64.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitExtract(mask: 0.NthFermatMask<ulong>(), value: ulong.CreateTruncating(value: value))),
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitExtract(mask: (0.NthFermatMask<ulong>() << 1), value: ulong.CreateTruncating(value: value)))
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+
         return (UnpairCore(value: value), UnpairCore(value: (value >> 1)));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
