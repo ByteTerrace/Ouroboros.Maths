@@ -239,30 +239,15 @@ public static class BinaryIntegerFunctions
     public static T LeastSignificantDigit<T>(this T value) where T : IBinaryInteger<T> =>
         (value % BinaryIntegerConstants<T>.Ten);
     public static T LogarithmBase10<T>(this T value) where T : IBinaryInteger<T> {
-        var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
+        var quotient = value;
+        var result = T.Zero;
 
-        value = T.Abs(value: value);
+        do {
+            quotient /= BinaryIntegerConstants<T>.Ten;
+            ++result;
+        } while (T.Zero < quotient);
 
-        return bitCount switch {
-#if !FORCE_SOFTWARE_LOG10
-            8 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
-            16 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
-            32 => (T.CreateTruncating(value: ((uint)Math.Log10(d: uint.CreateTruncating(value: value)))) + T.One),
-#endif
-            _ => SoftwareImplementation(value: value),
-        };
-
-        static T SoftwareImplementation(T value) {
-            var quotient = value;
-            var result = T.Zero;
-
-            do {
-                quotient /= BinaryIntegerConstants<T>.Ten;
-                ++result;
-            } while (T.Zero < quotient);
-
-            return result;
-        }
+        return result;
     }
     public static T MostSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
         (BinaryIntegerConstants<T>.Size - T.LeadingZeroCount(value: value));
