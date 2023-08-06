@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace Ouroboros.Maths;
 
@@ -24,8 +25,50 @@ public static class BinaryIntegerFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T NthPowerOfTwo<T>(this int value) where T : IBinaryInteger<T> =>
         (T.One << value);
+    internal static T RotateDigits<T>(this T value, int count) where T : IBinaryInteger<T> {
+        var absoluteValue = T.Abs(value: value);
+        var digitCount = absoluteValue.LogarithmBase10();
+
+        count %= int.CreateTruncating(value: digitCount);
+
+        var countAsT = T.CreateTruncating(value: count);
+
+        if (0 > count) { countAsT += digitCount; }
+
+        var factor = BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (digitCount - countAsT));
+        var endDigits = (absoluteValue / factor);
+        var startDigits = (absoluteValue - (endDigits * factor));
+
+        return T.CopySign(
+            sign: value,
+            value: ((startDigits * BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: countAsT)) + endDigits)
+        );
+    }
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        switch (value) {
+            case short:
+            case ushort:
+                if (Bmi2.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitDeposit(mask: 0.NthFermatMask<uint>(), value: uint.CreateTruncating(value: value))) |
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitDeposit(mask: (0.NthFermatMask<uint>() << 1), value: uint.CreateTruncating(value: other)))
+                    );
+                }
+                break;
+            case int:
+            case uint:
+                if (Bmi2.X64.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitDeposit(mask: 0.NthFermatMask<ulong>(), value: ulong.CreateTruncating(value: value))) |
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitDeposit(mask: (0.NthFermatMask<ulong>() << 1), value: ulong.CreateTruncating(value: other)))
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+
         const int loopOffset = 7;
 
         int offset;
@@ -65,6 +108,29 @@ public static class BinaryIntegerFunctions
         }
     }
     public static (TResult, TResult) BitwiseUnpair<TInput, TResult>(this TInput value) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
+        switch (value) {
+            case int:
+            case uint:
+                if (Bmi2.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitExtract(mask: 0.NthFermatMask<uint>(), value: uint.CreateTruncating(value: value))),
+                        TResult.CreateTruncating(value: Bmi2.ParallelBitExtract(mask: (0.NthFermatMask<uint>() << 1), value: uint.CreateTruncating(value: value)))
+                    );
+                }
+                break;
+            case long:
+            case ulong:
+                if (Bmi2.X64.IsSupported) {
+                    return (
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitExtract(mask: 0.NthFermatMask<ulong>(), value: ulong.CreateTruncating(value: value))),
+                        TResult.CreateTruncating(value: Bmi2.X64.ParallelBitExtract(mask: (0.NthFermatMask<ulong>() << 1), value: ulong.CreateTruncating(value: value)))
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+
         return (UnpairCore(value: value), UnpairCore(value: (value >> 1)));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -173,30 +239,15 @@ public static class BinaryIntegerFunctions
     public static T LeastSignificantDigit<T>(this T value) where T : IBinaryInteger<T> =>
         (value % BinaryIntegerConstants<T>.Ten);
     public static T LogarithmBase10<T>(this T value) where T : IBinaryInteger<T> {
-        var bitCount = int.CreateChecked(value: BinaryIntegerConstants<T>.Size);
+        var quotient = value;
+        var result = T.Zero;
 
-        value = T.Abs(value: value);
+        do {
+            quotient /= BinaryIntegerConstants<T>.Ten;
+            ++result;
+        } while (T.Zero < quotient);
 
-        return bitCount switch {
-#if !FORCE_SOFTWARE_LOG10
-            8 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
-            16 => (T.CreateTruncating(value: ((uint)MathF.Log10(x: uint.CreateTruncating(value: value)))) + T.One),
-            32 => (T.CreateTruncating(value: ((uint)Math.Log10(d: uint.CreateTruncating(value: value)))) + T.One),
-#endif
-            _ => SoftwareImplementation(value: value),
-        };
-
-        static T SoftwareImplementation(T value) {
-            var quotient = value;
-            var result = T.Zero;
-
-            do {
-                quotient /= BinaryIntegerConstants<T>.Ten;
-                ++result;
-            } while (T.Zero < quotient);
-
-            return result;
-        }
+        return result;
     }
     public static T MostSignificantBit<T>(this T value) where T : IBinaryInteger<T> =>
         (BinaryIntegerConstants<T>.Size - T.LeadingZeroCount(value: value));
@@ -282,4 +333,8 @@ public static class BinaryIntegerFunctions
 
         return T.CopySign(sign: value, value: result);
     }
+    public static T RotateDigitsLeft<T>(this T value, int count) where T : IBinaryInteger<T> =>
+        value.RotateDigits(count: count);
+    public static T RotateDigitsRight<T>(this T value, int count) where T : IBinaryInteger<T> =>
+        value.RotateDigits(count: -count);
 }
