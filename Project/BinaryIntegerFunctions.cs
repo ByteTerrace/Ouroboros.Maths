@@ -25,6 +25,25 @@ public static class BinaryIntegerFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T NthPowerOfTwo<T>(this int value) where T : IBinaryInteger<T> =>
         (T.One << value);
+    internal static T RotateDigits<T>(this T value, int count) where T : IBinaryInteger<T> {
+        var absoluteValue = T.Abs(value: value);
+        var digitCount = absoluteValue.LogarithmBase10();
+
+        count %= int.CreateTruncating(value: digitCount);
+
+        var countAsT = T.CreateTruncating(value: count);
+
+        if (0 > count) { countAsT += digitCount; }
+
+        var factor = BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (digitCount - countAsT));
+        var endDigits = (absoluteValue / factor);
+        var startDigits = (absoluteValue - (endDigits * factor));
+
+        return T.CopySign(
+            sign: value,
+            value: ((startDigits * BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: countAsT)) + endDigits)
+        );
+    }
 
     public static TResult BitwisePair<TInput, TResult>(this TInput value, TInput other) where TInput : IBinaryInteger<TInput> where TResult : IBinaryInteger<TResult> {
         switch (value) {
@@ -329,12 +348,8 @@ public static class BinaryIntegerFunctions
 
         return T.CopySign(sign: value, value: result);
     }
-    public static T RotateDigitsLeft<T>(this T value, uint count) where T : IBinaryInteger<T> {
-        var absoluteValue = T.Abs(value: value);
-        var factor = BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (absoluteValue.LogarithmBase10() - T.CreateTruncating(value: count)));
-        var endDigits = (absoluteValue / factor);
-        var startDigits = (absoluteValue - (endDigits * factor));
-
-        return T.CopySign(sign: value, value: (endDigits + (startDigits * BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: T.CreateTruncating(value: count)))));
-    }
+    public static T RotateDigitsLeft<T>(this T value, int count) where T : IBinaryInteger<T> =>
+        value.RotateDigits(count: count);
+    public static T RotateDigitsRight<T>(this T value, int count) where T : IBinaryInteger<T> =>
+        value.RotateDigits(count: -count);
 }
