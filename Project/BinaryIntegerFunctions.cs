@@ -329,4 +329,12 @@ public static class BinaryIntegerFunctions
 
         return T.CopySign(sign: value, value: result);
     }
+    public static T RotateDigitsLeft<T>(this T value, uint count) where T : IBinaryInteger<T> {
+        var absoluteValue = T.Abs(value: value);
+        var factor = BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: (absoluteValue.LogarithmBase10() - T.CreateTruncating(value: count)));
+        var endDigits = (absoluteValue / factor);
+        var startDigits = (absoluteValue - (endDigits * factor));
+
+        return T.CopySign(sign: value, value: (endDigits + (startDigits * BinaryIntegerConstants<T>.Ten.Exponentiate(exponent: T.CreateTruncating(value: count)))));
+    }
 }
