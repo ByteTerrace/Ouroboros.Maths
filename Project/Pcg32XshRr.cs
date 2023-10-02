@@ -59,7 +59,7 @@ public sealed class Pcg32XshRr
 
     public static Pcg32XshRr New(ulong magic, ulong state, ulong stream) => new(magic: magic, state: state, stream: stream);
     public static Pcg32XshRr New(ulong state, ulong stream) => New(magic: MAGIC_VALUE_DEFAULT, state: state, stream: stream);
-    public static Pcg32XshRr New() => New(state: SecureRandom.NextUInt64(), stream: SecureRandom.NextUInt64(maximum: STREAM_VALUE_MAX, minimum: 0UL));
+    public static Pcg32XshRr New() => New(state: SecureRandom.NextUInt<uint>(), stream: SecureRandom.NextUInt(maximum: STREAM_VALUE_MAX, minimum: 0UL));
 
     private readonly ulong m_magic;
     private readonly ulong m_stream;
