@@ -1,53 +1,32 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace Ouroboros.Maths;
 
 public static class SecureRandom
 {
-    private static uint NextUInt32(uint exclusiveHigh) {
-        var range = (uint.MaxValue - (((uint.MaxValue % exclusiveHigh) + 1U) % exclusiveHigh));
-        uint result;
+    private static T NextUInt<T>(T exclusiveHigh) where T : struct, IBinaryInteger<T>, IUnsignedNumber<T> {
+        var range = (T.AllBitsSet - (((T.AllBitsSet % exclusiveHigh) + T.One) % exclusiveHigh));
+        T result;
 
         do {
-            result = NextUInt32();
-        } while (result > range);
-
-        return (result % exclusiveHigh);
-    }
-    private static ulong NextUInt64(ulong exclusiveHigh) {
-        var range = (ulong.MaxValue - (((ulong.MaxValue % exclusiveHigh) + 1UL) % exclusiveHigh));
-        ulong result;
-
-        do {
-            result = NextUInt64();
+            result = NextUInt<T>();
         } while (result > range);
 
         return (result % exclusiveHigh);
     }
 
-    public static uint NextUInt32() {
-        var result = 0U;
+    public static T NextUInt<T>() where T : struct, IBinaryInteger<T>, IUnsignedNumber<T> {
+        var result = T.Zero;
 
-        RandomNumberGenerator.Fill(data: MemoryMarshal.AsBytes(span: new Span<uint>(reference: ref result)));
-
-        return result;
-    }
-    public static uint NextUInt32(uint maximum, uint minimum) {
-        var range = (maximum - minimum);
-
-        return ((range != uint.MaxValue) ? (NextUInt32(exclusiveHigh: (range + 1U)) + minimum) : NextUInt32());
-    }
-    public static ulong NextUInt64() {
-        var result = 0UL;
-
-        RandomNumberGenerator.Fill(data: MemoryMarshal.AsBytes(span: new Span<ulong>(reference: ref result)));
+        RandomNumberGenerator.Fill(data: MemoryMarshal.AsBytes(span: new Span<T>(reference: ref result)));
 
         return result;
     }
-    public static ulong NextUInt64(ulong maximum, ulong minimum) {
+    public static T NextUInt<T>(T maximum, T minimum) where T : struct, IBinaryInteger<T>, IUnsignedNumber<T> {
         var range = (maximum - minimum);
 
-        return ((range != ulong.MaxValue) ? (NextUInt64(exclusiveHigh: (range + 1UL)) + minimum) : NextUInt64());
+        return ((range != T.AllBitsSet) ? (NextUInt(exclusiveHigh: (range + T.One)) + minimum) : NextUInt<T>());
     }
 }
